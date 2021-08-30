@@ -4,11 +4,11 @@ pub mod base64 {
     const LOWERCASEOFFSET: i8 = 71;
     const DIGITOFFSET: i8 = -4;
 
-    pub fn from_hex(input: Vec<u8>) -> String {
+    pub fn encode_from_hex(input: Vec<u8>) -> String {
         let byte_chunks = input
             .chunks(3)
             .map(split)
-            .flat_map(encode)
+            .flat_map(encode_chunk)
             .map(|char| char.to_string());
 
         byte_chunks.collect::<Vec<String>>().join("")
@@ -34,7 +34,7 @@ pub mod base64 {
         }
     }
 
-    fn encode(chunks: Vec<u8>) -> Vec<char> {
+    fn encode_chunk(chunks: Vec<u8>) -> Vec<char> {
         let mut char_map = vec!['='; 4];
 
         for idx in 0..chunks.len() {
@@ -82,7 +82,7 @@ mod tests {
         let input = "Hi".as_bytes().to_vec();
         let output_b64 = String::from("SGk=");
 
-        assert_eq!(output_b64, base64::from_hex(input));
+        assert_eq!(output_b64, base64::encode_from_hex(input));
     }
 
     #[test]
@@ -90,6 +90,6 @@ mod tests {
         let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
         let output_b64 =
             String::from("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t");
-        assert_eq!(output_b64, base64::from_hex(input));
+        assert_eq!(output_b64, base64::encode_from_hex(input));
     }
 }
