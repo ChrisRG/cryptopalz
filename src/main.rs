@@ -7,5 +7,3 @@ fn main() {
     let encoded = base64::from_hex(input);
     println!("{}", encoded);
 }
-
-// fn base64_encode() {}
