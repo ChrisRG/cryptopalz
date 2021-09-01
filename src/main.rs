@@ -7,19 +7,9 @@ fn main() {
     // let encoded = base64::encode_from_hex(input);
     // println!("{}", encoded);
     let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736".to_string();
-    let mut hi_score = 0.0;
-    for c in 0..255 as u8 {
-        let decrypted = xor::single_byte(input.clone(), c as char);
-        let score = xor::score_english(decrypted.clone());
-        if score > hi_score {
-            hi_score = score;
-            println!(
-                "[{} - {:x}] {} - {}",
-                c,
-                c,
-                String::from_utf8(decrypted).unwrap(),
-                hi_score
-            );
-        }
-    }
+    let xor_char = xor::find_xor_char(input);
+    println!(
+        "[0x{} / `{}`] {}",
+        xor_char.0, xor_char.0 as char, xor_char.1
+    );
 }

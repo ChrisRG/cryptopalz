@@ -1,3 +1,4 @@
+// Set 1, exercise 1
 pub mod base64 {
     // Built using the tutorial found here: https://dev.to/tiemen/implementing-base64-from-scratch-in-rust-kb1
     const UPPERCASEOFFSET: i8 = 65;
