@@ -1,5 +1,5 @@
 pub mod xor {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, fs};
 
     // Set 1 exercise 2
     pub fn fixed(plaintext: String, key: String) -> String {
@@ -54,23 +54,36 @@ pub mod xor {
         (scores * decoded_text.len() as f32) / 100.0
     }
 
-    pub fn find_xor_char(encrypted: String) -> (u8, String) {
+    pub fn find_xor_char(encrypted: String) -> (f32, u8, Vec<u8>) {
         // Iterate through possible keys (i.e. all ASCII chars)
         // Update key with highest English score, return key and decrypted String
-        let mut hi_score = (0.0, 0x00, String::new());
+        let mut hi_score = (0.0, 0x00, Vec::new());
         for c in 0..255 as u8 {
             let decrypted = single_byte(&encrypted, c as char);
             let score = score_english(&decrypted);
             if score > hi_score.0 {
-                hi_score = (score, c, String::from_utf8(decrypted).unwrap());
+                hi_score = (score, c, decrypted);
             }
         }
-        (hi_score.1, hi_score.2)
+        (hi_score.0, hi_score.1, hi_score.2)
     }
 
     // Set 1 exercise 4
-    pub fn detect_single_byte_file(path: String) {
+    pub fn detect_single_byte_file(path: &str) -> (usize, (f32, u8, Vec<u8>)) {
         // Read file, return line that has been encrypted by single-character XOR
+        let source = fs::read_to_string(path).expect("Unable to read file.");
+        // Ugly tuple: (score, XOR byte, decrypted string)
+        let mut hi_score = (0.0, 0x00, Vec::new());
+        let mut line_num = 0;
+        for (idx, line) in source.lines().enumerate() {
+            let result = find_xor_char(line.to_string());
+            if result.0 > hi_score.0 {
+                hi_score = result;
+                line_num = idx + 1;
+            }
+        }
+        // Ugly double tuples to pass some data around
+        (line_num, hi_score)
     }
 }
 
