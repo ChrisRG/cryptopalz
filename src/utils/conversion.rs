@@ -1,5 +1,5 @@
 // Set 1, exercise 1
-pub mod base64 {
+pub mod my_base64 {
     // Built using the tutorial found here: https://dev.to/tiemen/implementing-base64-from-scratch-in-rust-kb1
     const UPPERCASEOFFSET: i8 = 65;
     const LOWERCASEOFFSET: i8 = 71;
@@ -65,13 +65,13 @@ pub mod base64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::conversion::base64;
+    use crate::utils::conversion::my_base64;
 
     #[test]
     fn split_hi() {
         let input = "Hi!".as_bytes(); // 01001000 01101001 00100001
         let output_split = "010010 000110 100100 100001";
-        let split: Vec<String> = base64::split(input)
+        let split: Vec<String> = my_base64::split(input)
             .iter()
             .map(|byte| format!("{:06b}", byte))
             .collect();
@@ -83,7 +83,7 @@ mod tests {
         let input = "Hi".as_bytes().to_vec();
         let output_b64 = String::from("SGk=");
 
-        assert_eq!(output_b64, base64::encode_from_hex(input));
+        assert_eq!(output_b64, my_base64::encode_from_hex(input));
     }
 
     #[test]
@@ -91,6 +91,24 @@ mod tests {
         let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
         let output_b64 =
             String::from("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t");
-        assert_eq!(output_b64, base64::encode_from_hex(input));
+        assert_eq!(output_b64, my_base64::encode_from_hex(input));
+    }
+
+    #[test]
+    fn enc_with_crate() {
+        let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
+        let enc_input = base64::encode(input);
+        let output_b64 =
+            String::from("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t");
+        assert_eq!(output_b64, enc_input);
+    }
+
+    #[test]
+    fn dec_with_crate() {
+        let input = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t".to_string();
+        let output_hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d".to_string();
+        if let Ok(dec_input) = base64::decode(input) {
+            assert_eq!(output_hex, hex::encode(dec_input));
+        }
     }
 }

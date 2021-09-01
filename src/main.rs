@@ -1,6 +1,9 @@
+#![allow(dead_code)]
+#![allow(warnings, unused)]
+
 mod utils;
 
-use utils::{conversion::base64, xor::xor};
+use utils::{conversion::my_base64, xor::xor};
 
 fn main() {
     // Set 1 ex 5
