@@ -3,15 +3,11 @@ mod utils;
 use utils::{conversion::base64, xor::xor};
 
 fn main() {
-    // Set 1 ex 4
-    let (line_num, result) = xor::detect_single_byte_file("./data/4.txt");
-    println!(
-        "(Line {}) [0x{} / `{}`] {}",
-        line_num,
-        result.1,
-        result.1 as char,
-        String::from_utf8(result.2).unwrap()
-    );
+    // Set 1 ex 5
+    let input = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
+    let encoded = xor::repeat_key(input, "ICE");
+    let hex_enc = hex::encode(encoded.iter().map(|&byte| byte as char).collect::<String>());
+    println!("{}", hex_enc);
 }
 
 // let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
@@ -24,4 +20,15 @@ fn main() {
 // println!(
 //     "[0x{} / `{}`] {}",
 //     xor_char.1, xor_char.1 as char, xor_char.2
+// );
+
+// Set 1 ex 4
+// Destructuring the embedded tuple
+// let (line_num, result) = xor::detect_single_byte_file("./data/4.txt");
+// println!(
+//     "(Line {}) [0x{} / `{}`] {}",
+//     line_num,
+//     result.1,
+//     result.1 as char,
+//     String::from_utf8(result.2).unwrap()
 // );

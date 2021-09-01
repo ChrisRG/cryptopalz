@@ -85,6 +85,20 @@ pub mod xor {
         // Ugly double tuples to pass some data around
         (line_num, hi_score)
     }
+
+    // Set 1 exercise 5
+    // Repeating-key XOR: XOR multi-byte key with plaintext, first byte of key to first byte of text, second to second, etc., wrapping around
+    pub fn repeat_key(plaintext: &str, key: &str) -> Vec<u8> {
+        let key = key.bytes().collect::<Vec<u8>>();
+        plaintext
+            .bytes()
+            .enumerate()
+            .map(|(idx, byte)| {
+                let key_idx = idx % key.len();
+                byte ^ key[key_idx]
+            })
+            .collect::<Vec<u8>>()
+    }
 }
 
 #[cfg(test)]
