@@ -99,6 +99,16 @@ pub mod xor {
             })
             .collect::<Vec<u8>>()
     }
+
+    pub fn ham_dist(str1: &str, str2: &str) -> u32 {
+        // Compares Hamming distance between two strings:
+        // XORs each byte, adding up total number of resulting 1 bits,
+        // which indicate a bitwise difference
+        str1.as_bytes()
+            .iter()
+            .zip(str2.as_bytes())
+            .fold(0, |acc, (byte1, byte2)| acc + (byte1 ^ byte2).count_ones())
+    }
 }
 
 #[cfg(test)]
@@ -122,5 +132,10 @@ mod tests {
         let xored = xor::single_byte(&plaintext, key);
 
         assert_eq!(solution, String::from_utf8(xored).unwrap());
+    }
+
+    #[test]
+    fn hamming_dist() {
+        assert_eq!(37, xor::ham_dist("this is a test", "wokka wokka!!!"));
     }
 }
