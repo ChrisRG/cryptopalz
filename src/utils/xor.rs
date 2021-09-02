@@ -1,5 +1,5 @@
 pub mod xor {
-    use std::{collections::HashMap, fs};
+    use std::{collections::HashMap, fs, ops::Range};
 
     // Set 1 exercise 2
     pub fn fixed(plaintext: String, key: String) -> String {
@@ -100,20 +100,40 @@ pub mod xor {
             .collect::<Vec<u8>>()
     }
 
-    pub fn ham_dist(str1: &str, str2: &str) -> u32 {
+    // Set 1 exercise 6 -- breaking repeating key XOR
+    pub fn ham_dist(str1: &[u8], str2: &[u8]) -> u32 {
         // Compares Hamming distance between two strings:
         // XORs each byte, adding up total number of resulting 1 bits,
         // which indicate a bitwise difference
-        str1.as_bytes()
-            .iter()
-            .zip(str2.as_bytes())
+        str1.iter()
+            .zip(str2)
             .fold(0, |acc, (byte1, byte2)| acc + (byte1 ^ byte2).count_ones())
+    }
+
+    // For each KEYSIZE, take the first KEYSIZE worth of bytes,
+    // and the second KEYSIZE worth of bytes, and find the edit distance between them.
+    // Normalize this result by dividing by KEYSIZE.
+    // The KEYSIZE with the smallest normalized edit distance is probably the key.
+    // You could proceed perhaps with the smallest 2-3 KEYSIZE values.
+    // Or take 4 KEYSIZE blocks instead of 2 and average the distances.
+    const KEYSIZE_RANGE: Range<usize> = (2..40);
+    pub fn calc_keysize(enc_text: &[u8]) -> Vec<(u32, usize)> {
+        let mut lo_score = (u32::MAX, 0);
+        let mut scores: Vec<(u32, usize)> = Vec::new();
+        for keysize in KEYSIZE_RANGE {
+            let mut blocks = enc_text.chunks(keysize).take(2);
+            let norm_ham_dist =
+                ham_dist(blocks.next().unwrap(), blocks.next().unwrap()) / keysize as u32;
+            scores.push((norm_ham_dist, keysize));
+        }
+        scores.sort_by(|a, b| b.0.cmp(&a.0));
+        scores.into_iter().take(3).collect::<Vec<(u32, usize)>>()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::xor::xor;
+    use crate::utils::xor::xor::{self, calc_keysize};
 
     #[test]
     fn xor_str() {
@@ -136,6 +156,18 @@ mod tests {
 
     #[test]
     fn hamming_dist() {
-        assert_eq!(37, xor::ham_dist("this is a test", "wokka wokka!!!"));
+        let str1 = "this is a test".as_bytes();
+        let str2 = "wokka wokka!!!".as_bytes();
+        assert_eq!(37, xor::ham_dist(str1, str2));
+    }
+
+    #[test]
+    fn calc_keysize_ice() {
+        let input = hex::decode(
+            "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f",
+        )
+        .unwrap();
+        let keysize_scores = calc_keysize(&input);
+        println!("{:?}", keysize_scores);
     }
 }
