@@ -8,7 +8,7 @@ use utils::{conversion::my_base64, xor::xor};
 fn main() {
     // Set 1 ex 5
     let input = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
-    let encoded = xor::repeat_key(input, "ICE");
+    let encoded = xor::repeat_key(input.as_bytes().to_owned(), "ICE".as_bytes().to_owned());
     let hex_enc = hex::encode(encoded.iter().map(|&byte| byte as char).collect::<String>());
     println!("{}", hex_enc);
 }
