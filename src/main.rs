@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(warnings, unused)]
 
 mod utils;
 

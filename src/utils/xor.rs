@@ -16,12 +16,7 @@ pub mod xor {
     // Set 1 exercise 3
     pub fn single_byte(plaintext: Vec<u8>, key: u8) -> Vec<u8> {
         // XOR key with each byte of plaintext string to encode/decode
-        // let plaintext = hex::decode(plaintext).unwrap();
-        let mut output: Vec<u8> = Vec::new();
-        plaintext.iter().for_each(|byte| {
-            output.push(byte ^ key);
-        });
-        output
+        plaintext.iter().map(|byte| byte ^ key).collect::<Vec<u8>>()
     }
 
     pub fn score_english(decoded_text: &[u8]) -> f32 {
@@ -57,7 +52,7 @@ pub mod xor {
         // Iterate through possible keys (i.e. all ASCII chars)
         // Update key with highest English score, return key and decrypted String
         let mut hi_score = (0.0, 0x00, Vec::new());
-        for c in 0..255 as u8 {
+        for c in 0..255_u8 {
             let decrypted = single_byte(encrypted.to_owned(), c);
             let score = score_english(&decrypted);
             if score > hi_score.0 {
@@ -99,7 +94,7 @@ pub mod xor {
     }
 
     // Set 1 exercise 6 -- breaking repeating key XOR
-    const KEYSIZE_RANGE: Range<usize> = (2..41);
+    const KEYSIZE_RANGE: Range<usize> = 2..41;
 
     pub fn ham_dist(str1: Vec<u8>, str2: Vec<u8>) -> u32 {
         // Compares Hamming distance between two strings:
@@ -117,7 +112,7 @@ pub mod xor {
         let mut scores: Vec<(f32, usize)> = Vec::new();
         for keysize in KEYSIZE_RANGE {
             let mut keysize_scores = 0.0;
-            let mut blocks: Vec<Vec<u8>> = enc_text
+            let blocks: Vec<Vec<u8>> = enc_text
                 .chunks(keysize)
                 .map(|chunk| chunk.to_owned())
                 .collect();
@@ -146,10 +141,10 @@ pub mod xor {
         // and a block that is the second byte of every block, and so on.
         let block_size = in_blocks[0].len();
         let mut out_blocks: Vec<Vec<u8>> = vec![Vec::new(); block_size];
-        let flat_blocks = in_blocks.into_iter().flatten().collect::<Vec<_>>();
-        for (idx, byte) in flat_blocks.into_iter().enumerate() {
+        // let flat_blocks = in_blocks.into_iter().flatten().collect::<Vec<_>>();
+        for (idx, byte) in in_blocks.into_iter().flatten().enumerate() {
             let block_idx = idx % block_size; // which index inside block
-            out_blocks[block_idx].push(byte.clone());
+            out_blocks[block_idx].push(byte);
         }
         out_blocks
     }
@@ -158,8 +153,8 @@ pub mod xor {
         // For each block, the single-byte XOR key that produces the best looking histogram is
         // the repeating-key XOR key byte for that block. Returns combined key bytes.
         let mut key: Vec<u8> = Vec::new();
-        for idx in 0..keysize {
-            let scored_key = find_xor_char(&blocks[idx]);
+        for block in blocks.iter().take(keysize) {
+            let scored_key = find_xor_char(block);
             key.push(scored_key.1);
         }
         key
@@ -213,7 +208,6 @@ mod tests {
         assert_eq!(37, xor::ham_dist(str1, str2));
     }
 
-    #[test]
     fn calc_keysize_ice() {
         let input = hex::decode(
             "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f",
@@ -221,7 +215,7 @@ mod tests {
         .unwrap();
         let keysize_scores = calc_keysize(input);
         println!("{:?}", keysize_scores);
-        let (scores, keysizes): (Vec<f32>, Vec<usize>) = keysize_scores.iter().cloned().unzip();
+        let (_, keysizes): (Vec<f32>, Vec<usize>) = keysize_scores.iter().cloned().unzip();
         assert_eq!(3, keysizes[0]);
     }
 
