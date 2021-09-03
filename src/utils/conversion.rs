@@ -67,7 +67,6 @@ pub mod my_base64 {
 mod tests {
     use crate::utils::conversion::my_base64;
 
-    #[test]
     fn split_hi() {
         let input = "Hi!".as_bytes(); // 01001000 01101001 00100001
         let output_split = "010010 000110 100100 100001";
@@ -78,7 +77,6 @@ mod tests {
         assert_eq!(output_split, split.join(" "));
     }
 
-    #[test]
     fn encode_hi() {
         let input = "Hi".as_bytes().to_vec();
         let output_b64 = String::from("SGk=");
@@ -86,7 +84,6 @@ mod tests {
         assert_eq!(output_b64, my_base64::encode_from_hex(input));
     }
 
-    #[test]
     fn encode_hex() {
         let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
         let output_b64 =
@@ -94,7 +91,6 @@ mod tests {
         assert_eq!(output_b64, my_base64::encode_from_hex(input));
     }
 
-    #[test]
     fn enc_with_crate() {
         let input = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap();
         let enc_input = base64::encode(input);
@@ -103,7 +99,6 @@ mod tests {
         assert_eq!(output_b64, enc_input);
     }
 
-    #[test]
     fn dec_with_crate() {
         let input = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t".to_string();
         let output_hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d".to_string();

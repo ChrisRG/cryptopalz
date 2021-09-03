@@ -100,9 +100,9 @@ pub mod xor {
     }
 
     // Set 1 exercise 6 -- breaking repeating key XOR
-    const KEYSIZE_RANGE: Range<usize> = (2..40);
+    const KEYSIZE_RANGE: Range<usize> = (2..41);
 
-    pub fn ham_dist(str1: &[u8], str2: &[u8]) -> u32 {
+    pub fn ham_dist(str1: Vec<u8>, str2: Vec<u8>) -> u32 {
         // Compares Hamming distance between two strings:
         // XORs each byte, adding up total number of resulting 1 bits,
         // which indicate a bitwise difference
@@ -117,16 +117,24 @@ pub mod xor {
     // The KEYSIZE with the smallest normalized edit distance is probably the key.
     // You could proceed perhaps with the smallest 2-3 KEYSIZE values.
     // Or take 4 KEYSIZE blocks instead of 2 and average the distances.
-    pub fn calc_keysize(enc_text: &[u8]) -> Vec<(u32, usize)> {
-        let mut lo_score = (u32::MAX, 0);
-        let mut scores: Vec<(u32, usize)> = Vec::new();
+    pub fn calc_keysize(enc_text: Vec<u8>) -> Vec<(f32, usize)> {
+        let mut scores: Vec<(f32, usize)> = Vec::new();
         for keysize in KEYSIZE_RANGE {
-            let mut blocks: Vec<_> = enc_text.chunks(keysize).take(4).collect();
-            let norm_ham_dist = ham_dist(blocks[0], blocks[1]) / keysize as u32;
-            scores.push((norm_ham_dist, keysize));
+            let mut keysize_scores = 0.0;
+            let mut blocks: Vec<Vec<u8>> = enc_text
+                .chunks(keysize)
+                .map(|chunk| chunk.to_owned())
+                .collect();
+            for windows in blocks.windows(2) {
+                let ham_dist = ham_dist(windows[0].clone(), windows[1].clone());
+                keysize_scores += ham_dist as f32;
+            }
+            let avg_score = keysize_scores / (blocks.len() as f32 / 2.0);
+            let norm_score = avg_score / keysize as f32;
+            scores.push((norm_score as f32, keysize));
         }
-        scores.sort_by(|a, b| b.0.cmp(&a.0));
-        scores.into_iter().take(3).collect::<Vec<(u32, usize)>>()
+        scores.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        scores.into_iter().take(1).collect::<Vec<(f32, usize)>>()
     }
 
     // Now that you probably know the KEYSIZE: break the ciphertext into blocks of KEYSIZE length.
@@ -140,7 +148,7 @@ pub mod xor {
     // and a block that is the second byte of every block, and so on.
     pub fn transpose_blocks(in_blocks: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
         let block_size = in_blocks[0].len();
-        let mut out_blocks: Vec<Vec<u8>> = vec![Vec::new(); in_blocks.len()];
+        let mut out_blocks: Vec<Vec<u8>> = vec![Vec::new(); block_size];
         let flat_blocks = in_blocks.into_iter().flatten().collect::<Vec<_>>();
         for (idx, byte) in flat_blocks.into_iter().enumerate() {
             let block_idx = idx % block_size; // which index inside block
@@ -167,11 +175,10 @@ pub mod xor {
 mod tests {
     use std::fs;
 
-    use crate::utils::xor::xor::{self, calc_keysize, repeat_key, transpose_blocks};
+    use crate::utils::xor::xor::{self, calc_keysize, repeat_key, score_english, transpose_blocks};
 
     use super::xor::{block_ciphertext, break_repeating_xor};
 
-    #[test]
     fn xor_str() {
         let plaintext = "1c0111001f010100061a024b53535009181c".to_string();
         let key = "686974207468652062756c6c277320657965".to_string();
@@ -189,25 +196,22 @@ mod tests {
         assert_eq!(solution, String::from_utf8(xored).unwrap());
     }
 
-    #[test]
     fn hamming_dist() {
-        let str1 = "this is a test".as_bytes();
-        let str2 = "wokka wokka!!!".as_bytes();
+        let str1 = "this is a test".as_bytes().to_owned();
+        let str2 = "wokka wokka!!!".as_bytes().to_owned();
         assert_eq!(37, xor::ham_dist(str1, str2));
     }
 
-    #[test]
     fn calc_keysize_ice() {
         let input = hex::decode(
             "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f",
         )
         .unwrap();
-        let keysize_scores = calc_keysize(&input);
-        let (scores, keysizes): (Vec<u32>, Vec<usize>) = keysize_scores.iter().cloned().unzip();
+        let keysize_scores = calc_keysize(input);
+        let (scores, keysizes): (Vec<f32>, Vec<usize>) = keysize_scores.iter().cloned().unzip();
         assert_eq!(Some(&3), keysizes.iter().find(|&&key| key == 3));
     }
 
-    #[test]
     fn test_block_transpose() {
         // let in_blocks = vec![&[1 as u8, 2, 3], &[4, 5, 6], &[7, 8, 9]];
         // let out_blocks = transpose_blocks(in_blocks);
@@ -217,19 +221,17 @@ mod tests {
 
     #[test]
     fn test_break_repeating_xor() {
-        let mut source = fs::read_to_string("./data/6.txt").expect("Unable to read file.");
-        source.retain(|c| !c.is_whitespace());
-        let ciphertext = base64::decode(source).unwrap();
-        let keysizes = calc_keysize(&ciphertext.clone());
+        let mut ciphertext = fs::read_to_string("./data/6.txt").expect("Unable to read file.");
+        ciphertext.retain(|c| !c.is_whitespace());
+        let ciphertext = base64::decode(ciphertext).unwrap();
+        let keysizes = calc_keysize(ciphertext.clone());
         for keysize in keysizes {
             let blocks = block_ciphertext(&ciphertext.clone(), keysize.1);
             let transposed_blocks = transpose_blocks(blocks.clone());
             let key_try = break_repeating_xor(transposed_blocks.clone(), keysize.1);
-            println!(
-                "{:?} | {:?}",
-                String::from_utf8(repeat_key(ciphertext.clone(), key_try.clone())),
-                key_try
-            );
+            let decrypted = repeat_key(ciphertext.clone(), key_try.clone());
+            println!("{}", String::from_utf8(decrypted).unwrap());
+            println!("Key: {}", String::from_utf8(key_try).unwrap());
         }
     }
 }
