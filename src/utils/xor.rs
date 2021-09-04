@@ -1,3 +1,12 @@
+/* To refactor:
+- lib.rs instead of multiple files inside utils
+- individual public functions for each exercise
+- tests for all functions
+- use clap or another args crate;
+- match on value of flag to call library (e.g. "cargo run --excercise=1.5")
+    which directs to secondary entrypoint, which will ask for user input
+*/
+
 pub mod xor {
     use std::{collections::HashMap, fs, ops::Range};
 
