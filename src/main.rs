@@ -4,7 +4,7 @@ mod utils;
 
 use std::fs;
 
-use utils::{conversion::my_base64, xor::xor};
+use utils::xor;
 
 fn main() {
     // Set 1 ex 6
