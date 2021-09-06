@@ -7,10 +7,10 @@
     which directs to secondary entrypoint, which will ask for user input
 */
 
-use std::{collections::HashMap, fs, ops::Range};
+use std::{collections::HashMap, fs};
 
-pub fn fixed_len(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    // Iterate through bytes of plaintext, XOR each byte with corresponding byte of equal-length key string
+pub fn xor_fixed_len(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    // Iterate through bytes of plaintext and key of equal length, XOR them together
     let mut output: Vec<u8> = Vec::new();
     for (plain_byte, key_byte) in plaintext.iter().zip(key.iter()) {
         output.push(plain_byte ^ key_byte);
@@ -18,28 +18,42 @@ pub fn fixed_len(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     output
 }
 
-// Set 1 exercise 3
-pub fn single_byte(plaintext: Vec<u8>, key: u8) -> Vec<u8> {
-    // XOR key with each byte of plaintext string to encode/decode
+pub fn xor_single_byte(plaintext: Vec<u8>, key: u8) -> Vec<u8> {
+    // XOR single-byte key with each byte of plaintext
     plaintext.iter().map(|byte| byte ^ key).collect::<Vec<u8>>()
 }
 
 pub fn score_english(decoded_text: &[u8]) -> f32 {
-    // Return score of given byte array, i.e. proximity to English using letter frequency (ETAOIN SHRDLU + SPC)
+    // Return score of given byte array in terms of proximity to English
+    // using letter frequency (ETAOIN SHRDLU + SPC)
     let char_frequencies: HashMap<char, f32> = [
-        ('a', 8.0),
-        ('d', 4.0),
-        ('e', 12.0),
-        ('h', 6.0),
-        ('i', 6.0),
-        ('l', 4.0),
-        ('n', 6.0),
-        ('o', 7.0),
-        ('r', 6.0),
-        ('s', 6.0),
-        ('t', 9.0),
-        ('u', 3.0),
-        (' ', 20.0),
+        ('a', 0.082),
+        ('b', 0.015),
+        ('c', 0.028),
+        ('d', 0.042),
+        ('e', 0.127),
+        ('f', 0.022),
+        ('g', 0.020),
+        ('h', 0.061),
+        ('i', 0.061),
+        ('j', 0.001),
+        ('k', 0.008),
+        ('l', 0.040),
+        ('m', 0.024),
+        ('n', 0.067),
+        ('o', 0.075),
+        ('p', 0.019),
+        ('q', 0.001),
+        ('r', 0.060),
+        ('s', 0.063),
+        ('t', 0.091),
+        ('u', 0.028),
+        ('v', 0.010),
+        ('w', 0.024),
+        ('x', 0.002),
+        ('y', 0.020),
+        ('z', 0.001),
+        (' ', 0.130),
     ]
     .iter()
     .cloned()
@@ -50,15 +64,15 @@ pub fn score_english(decoded_text: &[u8]) -> f32 {
         .filter_map(|&c| char_frequencies.get(&(c as char)))
         .sum::<f32>();
 
-    (scores * decoded_text.len() as f32) / 100.0
+    (scores * decoded_text.len() as f32) * 100.0
 }
 
 pub fn find_xor_char(encrypted: &[u8]) -> (f32, u8, Vec<u8>) {
-    // Iterate through possible keys (i.e. all ASCII chars)
+    // Iterate through possible single-byte keys (all ASCII chars)
     // Update key with highest English score, return key and decrypted String
     let mut hi_score = (0.0, 0x00, Vec::new());
     for c in 0..255_u8 {
-        let decrypted = single_byte(encrypted.to_owned(), c);
+        let decrypted = xor_single_byte(encrypted.to_owned(), c);
         let score = score_english(&decrypted);
         if score > hi_score.0 {
             hi_score = (score, c, decrypted);
@@ -67,14 +81,20 @@ pub fn find_xor_char(encrypted: &[u8]) -> (f32, u8, Vec<u8>) {
     (hi_score.0, hi_score.1, hi_score.2)
 }
 
-// Set 1 exercise 4
-pub fn detect_single_byte_file(path: &str) -> (usize, (f32, u8, Vec<u8>)) {
-    // Read file, return line that has been encrypted by single-character XOR
+pub fn read_file_to_lines(path: &str) -> Vec<String> {
     let source = fs::read_to_string(path).expect("Unable to read file.");
+    source
+        .lines()
+        .map(|line| line.to_owned())
+        .collect::<Vec<String>>()
+}
+
+pub fn detect_encrypted_line(source: Vec<String>) -> (usize, (f32, u8, Vec<u8>)) {
+    // Read through lines, return one line that has been encrypted with single-character XOR
     // Ugly tuple: (score, XOR byte, decrypted string)
     let mut hi_score = (0.0, 0x00, Vec::new());
     let mut line_num = 0;
-    for (idx, line) in source.lines().enumerate() {
+    for (idx, line) in source.iter().enumerate() {
         let result = find_xor_char(line.as_bytes());
         if result.0 > hi_score.0 {
             hi_score = result;
@@ -85,29 +105,34 @@ pub fn detect_single_byte_file(path: &str) -> (usize, (f32, u8, Vec<u8>)) {
     (line_num, hi_score)
 }
 
-// Set 1 exercise 5
-// Repeating-key XOR: XOR multi-byte key with plaintext, first byte of key to first byte of text, second to second, etc., wrapping around
-pub fn repeat_key(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+pub fn xor_repeat_key(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    // Apply multi-byte key to plaintext: XOR first byte of key to first byte of text
+    // ... n-th byte of key to n-th of text, then wrap around
     plaintext
         .iter()
         .enumerate()
         .map(|(idx, byte)| {
+            // Use key length as a modulo operator to find correct character to XOR
             let key_idx = idx % key.len();
             byte ^ key[key_idx]
         })
         .collect::<Vec<u8>>()
 }
 
-// Set 1 exercise 6 -- breaking repeating key XOR
-const KEYSIZE_RANGE: Range<usize> = 2..41;
-
-pub fn ham_dist(str1: Vec<u8>, str2: Vec<u8>) -> u32 {
+pub fn hamming_distance(str1: Vec<u8>, str2: Vec<u8>) -> u32 {
     // Compares Hamming distance between two strings:
-    // XORs each byte, adding up total number of resulting 1 bits,
-    // which indicate a bitwise difference
+    // XORs each byte, adding up total number of resulting 1 bits, which indicate bitwise difference
     str1.iter()
         .zip(str2)
         .fold(0, |acc, (byte1, byte2)| acc + (byte1 ^ byte2).count_ones())
+}
+
+pub fn block_text(text: &[u8], keysize: usize) -> Vec<Vec<u8>> {
+    // Breaks plain/encrypted text into keysize-sized blocks
+    // e.g. block_text(&[1,2,3,4], 2) => [[1,2],[3,4]]
+    text.chunks(keysize)
+        .map(|chunk| chunk.to_owned())
+        .collect::<Vec<Vec<u8>>>()
 }
 
 pub fn calc_keysize(enc_text: Vec<u8>) -> Vec<(f32, usize)> {
@@ -115,14 +140,11 @@ pub fn calc_keysize(enc_text: Vec<u8>) -> Vec<(f32, usize)> {
     // Finds edit distance between consecutive pairs of blocks, averages edit distances for given keysize
     // Returns lowest scored normalized score
     let mut scores: Vec<(f32, usize)> = Vec::new();
-    for keysize in KEYSIZE_RANGE {
+    for keysize in 2..41 {
         let mut keysize_scores = 0.0;
-        let blocks: Vec<Vec<u8>> = enc_text
-            .chunks(keysize)
-            .map(|chunk| chunk.to_owned())
-            .collect();
+        let blocks = block_text(&enc_text, keysize);
         for windows in blocks.windows(2) {
-            let ham_dist = ham_dist(windows[0].clone(), windows[1].clone());
+            let ham_dist = hamming_distance(windows[0].clone(), windows[1].clone());
             keysize_scores += ham_dist as f32;
         }
         let avg_score = keysize_scores / (blocks.len() as f32 / 2.0);
@@ -130,23 +152,14 @@ pub fn calc_keysize(enc_text: Vec<u8>) -> Vec<(f32, usize)> {
         scores.push((norm_score as f32, keysize));
     }
     scores.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-    scores.into_iter().take(1).collect::<Vec<(f32, usize)>>()
-}
-
-pub fn block_ciphertext(ciphertext: &[u8], keysize: usize) -> Vec<Vec<u8>> {
-    // Breaks the ciphertext into blocks of keysize length
-    ciphertext
-        .chunks(keysize)
-        .map(|block| block.to_owned())
-        .collect()
+    scores.into_iter().take(3).collect::<Vec<(f32, usize)>>()
 }
 
 pub fn transpose_blocks(in_blocks: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
     // Transposes the blocks: make a block that is the first byte of every block,
-    // and a block that is the second byte of every block, and so on.
+    // and a block that is the second byte of every block, etc.
     let block_size = in_blocks[0].len();
     let mut out_blocks: Vec<Vec<u8>> = vec![Vec::new(); block_size];
-    // let flat_blocks = in_blocks.into_iter().flatten().collect::<Vec<_>>();
     for (idx, byte) in in_blocks.into_iter().flatten().enumerate() {
         let block_idx = idx % block_size; // which index inside block
         out_blocks[block_idx].push(byte);
@@ -169,10 +182,10 @@ pub fn brute_force_repeating_xor(ciphertext: Vec<u8>) -> Vec<(Vec<u8>, Vec<u8>)>
     let keysizes = calc_keysize(ciphertext.clone());
     let mut solutions = Vec::new();
     for keysize in keysizes {
-        let blocks = block_ciphertext(&ciphertext.clone(), keysize.1);
+        let blocks = block_text(&ciphertext.clone(), keysize.1);
         let transposed_blocks = transpose_blocks(blocks.clone());
         let key_try = repeating_xor_key(transposed_blocks.clone(), keysize.1);
-        let decrypted = repeat_key(ciphertext.clone(), key_try.clone());
+        let decrypted = xor_repeat_key(ciphertext.clone(), key_try.clone());
         solutions.push((key_try.clone(), decrypted.clone()));
     }
     solutions
@@ -182,7 +195,9 @@ pub fn brute_force_repeating_xor(ciphertext: Vec<u8>) -> Vec<(Vec<u8>, Vec<u8>)>
 mod tests {
     use std::fs;
 
-    use crate::utils::xor::{self, calc_keysize, transpose_blocks};
+    use crate::utils::xor::{
+        calc_keysize, hamming_distance, transpose_blocks, xor_fixed_len, xor_single_byte,
+    };
 
     // use super::brute_force_repeating_xor;
 
@@ -193,16 +208,16 @@ mod tests {
         let solution_hex = "746865206b696420646f6e277420706c6179";
         let plaintext = hex::decode(plaintext_hex).unwrap();
         let key = hex::decode(key_hex).unwrap();
-        let fixed_len_xor = xor::fixed_len(plaintext, key);
+        let fixed_len_xor = xor_fixed_len(plaintext, key);
         assert_eq!(solution_hex, hex::encode(fixed_len_xor));
     }
 
     #[test]
-    fn xor_single_byte() {
+    fn test_xor_single_byte() {
         let plaintext = "Hello";
         let key = 's' as u8;
         let solution = ";\x16\x1f\x1f\x1c".to_string();
-        let xored = xor::single_byte(plaintext.as_bytes().to_owned(), key);
+        let xored = xor_single_byte(plaintext.as_bytes().to_owned(), key);
 
         assert_eq!(solution, String::from_utf8(xored).unwrap());
     }
@@ -211,7 +226,7 @@ mod tests {
     fn hamming_dist() {
         let str1 = "this is a test".as_bytes().to_owned();
         let str2 = "wokka wokka!!!".as_bytes().to_owned();
-        assert_eq!(37, xor::ham_dist(str1, str2));
+        assert_eq!(37, hamming_distance(str1, str2));
     }
 
     fn calc_keysize_ice() {
