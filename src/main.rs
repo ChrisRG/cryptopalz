@@ -4,14 +4,14 @@ mod utils;
 
 use std::fs;
 
-use utils::xor;
+use utils::xor::xor_brute_force_repeating_key;
 
 fn main() {
     // Set 1 ex 6
     let mut ciphertext = fs::read_to_string("./data/6.txt").expect("Unable to read file.");
     ciphertext.retain(|c| !c.is_whitespace());
     let ciphertext = base64::decode(ciphertext).unwrap();
-    let solutions = xor::brute_force_repeating_xor(ciphertext);
+    let solutions = xor_brute_force_repeating_key(ciphertext);
     println!("{}", String::from_utf8(solutions[0].clone().1).unwrap());
     println!(
         "Key: {}",
